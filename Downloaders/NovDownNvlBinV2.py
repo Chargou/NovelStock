@@ -3,11 +3,16 @@ from datetime import date
 import urllib.request
 from toolbox import *
 
+### Works for noveltop1.org, AKA https://novelbin.com/home
+### If you want to add support for other websites, you should only have to change the five regexes below
+
 REGEX_CHAPTER_HTML = re.compile(r"0%; margin-top: 15px;\" >(.*)<hr class=\"chr-end\">", re.MULTILINE) #Extracts chapter html from page html
 REGEX_NEXT_CHAPTER_LINK = re.compile(r"href=\"([^\"]*)\" class=\"btn btn-success\" id=\"next", re.MULTILINE) #Extracts next chapter's link from //
 REGEX_CHAPTER_NUMBER = re.compile(r"/c+hapter-(\d+)") #Extracts chapter number from chapter link
 REGEX_AD_REMOVER = re.compile(r"<div id=\"[^\"]*\"><script>window\.pubfuturetag = window\.pubfuturetag \|\| \[];window\.pubfuturetag\.push\({unit: \"[^\"]*\", id: \"[^\"]*\"}\)</script></div>", re.MULTILINE)
+REGEX_FIRST_CHAPTER_LINK = re.compile(r"-now\" title=\"READ NOW\" href=\"([^\"]*)\">RE")
 
+# If you want to stylise the doc, change the style attribute of body in file_header
 file_header = "<!DOCTYPE html> <html> <body style=\"background-color:#242526;color:#FFFDD0;margin:0px 350px\"><a href=\"#ChapterNumber\"><h1>Jump to chapter</h1></a>"
 file_closer = "</body> </html>"
 
@@ -63,6 +68,7 @@ def download_novel_from_chapter(chapter_link, filename="Unnamed"):
             chapter_html, chapter_link = get_novel_chapter(chapter_link)
             chapters_html += chapter_html
             counter += 1
+            start = chrono()
         except Exception as e:
             if last_problem == chapter_link:
                 print(e)
@@ -74,11 +80,16 @@ def download_novel_from_chapter(chapter_link, filename="Unnamed"):
             attendre(5000)
     chapters_html += file_closer
     saveto(chapters_html, filename)
-    print(f"FINISHED ! ({counter} chapters downloaded)")
+    time = chrono()-start
+    print(f"FINISHED ! ({counter} chapters downloaded in {time} seconds ({counter/time} chapters per second))")
 
 def download_novel(novel_link, filename="Unnamed"):
-    pass
+    """Downloads entire novel"""
+    p = getpage(novel_link)
+    first_chapter_link = process_match(REGEX_FIRST_CHAPTER_LINK.search(p))
+    download_novel_from_chapter(first_chapter_link)
 
 todayte = date.today().strftime("%d-%m-%Y")
 
-download_novel_from_chapter("https://novelbin.novel-online.org/novel/the-nebulas-civilization/cchapter-1-practice-game-until-now", "The_Nebulas'-Civilization_"+todayte)
+#Example:
+#download_novel("https://novelbin.com/b/god-tier-farm", "God-Tier-Farm_"+todayte)
